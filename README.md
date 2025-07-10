@@ -18,7 +18,7 @@ cd GlassButton
 pip install -r requirements.txt
 python glassBtn.py
 
-
+```
 
 🇬🇧 English
 Telegram bot for creating messages with inline buttons. Features:
@@ -36,11 +36,13 @@ bash
 Copy
 Edit
 
+
+```bash
 git clone https://github.com/kavweb/GlassButton.git
 cd GlassButton
 pip install -r requirements.txt
 python glassBtn.py
-
+```
 
 
 PowerdByAi
