@@ -9,7 +9,7 @@
 - افزودن یا ویرایش دکمه‌های لینک‌دار
 - پشتیبانی از چند زبان
 - ارسال پیام به گروه‌ها یا کانال‌ها
-
+  یک نکته کوچک اینه که من از پایتون ۳.۱۳ استفاده کردم
 ### راه‌اندازی سریع
 
 ```bash
@@ -36,6 +36,7 @@ bash
 Copy
 Edit
 
+Note: I'm using the python 3.13 
 
 ```bash
 git clone https://github.com/kavweb/GlassButton.git
