@@ -15,7 +15,7 @@ from telegram.ext import (
     filters,
 )
 
-SELECT_MODE, RECEIVE_MEDIA, WAIT_CAPTION, RECEIVE_CAPTION, CHOOSE_BUTTON_SEND, RECEIVE_BUTTON, RECEIVE_TARGET, EDIT_BUTTON_SELECT, EDIT_BUTTON_TEXT = range(9)
+SELECT_MODE, RECEIVE_MEDIA, WAIT_CAPTION, RECEIVE_CAPTION, CHOOSE_BUTTON_SEND, RECEIVE_BUTTON, RECEIVE_TARGET = range(7)
 
 translations = {
     "fa": {
@@ -27,14 +27,11 @@ translations = {
         "enter_caption": "📋 لطفاً کپشن (یا متن پیام) را وارد کن:",
         "caption_received": "✅ کپشن دریافت شد. حالا انتخاب کن:",
         "add_button": "➕ افزودن دکمه",
-        "edit_button": "🛠 ویرایش دکمه‌ها",
         "send_now": "📤 ارسال پیام",
-        "enter_button_text_url": "📥 برای افزودن یا ویرایش دکمه، ابتدا متن دکمه را در یک خط و سپس لینک را در خط بعد وارد کن.",
+        "enter_button_text_url": "📥 برای افزودن هر دکمه، ابتدا متن دکمه را در یک خط و سپس لینک را در خط بعد وارد کن.\nمثال:\nورود\nhttps://example.com",
         "invalid_button_format": "❌ فرمت اشتباه است. لطفاً ابتدا متن دکمه را بنویس و خط بعدی لینک را بفرست.",
         "button_saved": "✅ دکمه ذخیره شد. یکی از گزینه‌ها را انتخاب کن:",
-        "select_button_to_edit": "🔧 لطفاً یکی از دکمه‌ها را برای ویرایش انتخاب کن:",
-        "button_edited": "✅ دکمه با موفقیت ویرایش شد.",
-        "enter_target": "📥 لطفاً آیدی کانال یا گروه را وارد کن:",
+        "enter_target": "📥 لطفاً آیدی کانال یا گروه را وارد کن (مثلاً: @mychannel یا -1001234567890):",
         "sent_success": "✅ پیام با موفقیت ارسال شد.",
         "send_error": "❗️ خطا در ارسال پیام: {error}",
         "cancelled": "🚫 عملیات لغو شد.",
@@ -42,28 +39,53 @@ translations = {
         "lang_fa": "🇮🇷 فارسی",
         "lang_en": "🇬🇧 English",
         "invalid_media": "❌ لطفاً دقیقاً یک عکس یا یک ویدیو ارسال کن.",
-        "send_another": "🚀 ارسال پیام جدید",
-        "exit": "❌ پایان"
+    },
+    "en": {
+        "start_message": "Hello! Please choose one of the options:",
+        "choose_media": "🖼 Send Photo/Video",
+        "choose_text": "📝 Send Text Only",
+        "send_caption": "📝 Send Caption",
+        "media_received": "✅ Media received. Click the button to continue and send caption.",
+        "enter_caption": "📋 Please enter the caption (or message text):",
+        "caption_received": "✅ Caption received. Now choose an option:",
+        "add_button": "➕ Add Button",
+        "send_now": "📤 Send Message",
+        "enter_button_text_url": "📥 To add a button, send the text in the first line and the link in the second line.\nExample:\nJoin\nhttps://example.com",
+        "invalid_button_format": "❌ Invalid format. Send text in first line and link in second.",
+        "button_saved": "✅ Button saved. Choose next step:",
+        "enter_target": "📥 Please enter the channel or group ID (e.g., @mychannel or -1001234567890):",
+        "sent_success": "✅ Message sent successfully.",
+        "send_error": "❗️ Error while sending message: {error}",
+        "cancelled": "🚫 Operation canceled.",
+        "choose_language": "🌐 Please choose your language:",
+        "lang_fa": "🇮🇷 Persian",
+        "lang_en": "🇬🇧 English",
+        "invalid_media": "❌ Please send exactly one photo or one video.",
     }
 }
+
 
 def t(context, key):
     lang = context.user_data.get("lang", "fa")
     return translations[lang].get(key, key)
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("🇮🇷 فارسی", callback_data="lang_fa")],
         [InlineKeyboardButton("🇬🇧 English", callback_data="lang_en")],
     ]
-    await update.message.reply_text("🌐 لطفاً زبان خود را انتخاب کنید:", reply_markup=InlineKeyboardMarkup(keyboard))
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("🌐 لطفاً زبان خود را انتخاب کنید:", reply_markup=reply_markup)
     return SELECT_MODE
+
 
 async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    lang = query.data.split("_")[-1]
-    context.user_data["lang"] = lang
+
+    selected_lang = query.data.split("_")[-1]
+    context.user_data["lang"] = selected_lang
     context.user_data["buttons"] = []
 
     keyboard = [
@@ -73,20 +95,6 @@ async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(t(context, "start_message"), reply_markup=InlineKeyboardMarkup(keyboard))
     return SELECT_MODE
 
-async def restart(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    context.user_data.clear()
-    return await start(query, context)
-
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.callback_query:
-        await update.callback_query.answer()
-        await update.callback_query.edit_message_text(t(context, "cancelled"))
-    else:
-        await update.message.reply_text(t(context, "cancelled"))
-    context.user_data.clear()
-    return ConversationHandler.END
 
 async def mode_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -101,6 +109,7 @@ async def mode_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["media_type"] = None
         await query.edit_message_text(t(context, "enter_caption"))
         return RECEIVE_CAPTION
+
 
 async def receive_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
@@ -118,21 +127,23 @@ async def receive_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await message.reply_text(t(context, "media_received"), reply_markup=InlineKeyboardMarkup(keyboard))
     return WAIT_CAPTION
 
+
 async def to_caption(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     await query.edit_message_text(t(context, "enter_caption"))
     return RECEIVE_CAPTION
 
+
 async def receive_caption(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["caption"] = update.message.text
     keyboard = [
         [InlineKeyboardButton(t(context, "add_button"), callback_data="add_button")],
-        [InlineKeyboardButton(t(context, "edit_button"), callback_data="edit_button")],
         [InlineKeyboardButton(t(context, "send_now"), callback_data="send_now")],
     ]
     await update.message.reply_text(t(context, "caption_received"), reply_markup=InlineKeyboardMarkup(keyboard))
     return CHOOSE_BUTTON_SEND
+
 
 async def handle_after_caption(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -142,21 +153,10 @@ async def handle_after_caption(update: Update, context: ContextTypes.DEFAULT_TYP
     if choice == "add_button":
         await query.edit_message_text(t(context, "enter_button_text_url"))
         return RECEIVE_BUTTON
-    elif choice == "edit_button":
-        buttons = context.user_data.get("buttons", [])
-        if not buttons:
-            await query.edit_message_text("⛔️ دکمه‌ای برای ویرایش وجود ندارد.")
-            return CHOOSE_BUTTON_SEND
-
-        keyboard = [
-            [InlineKeyboardButton(f"{i+1}. {text}", callback_data=f"edit_{i}")]
-            for i, (text, _) in enumerate(buttons)
-        ]
-        await query.edit_message_text(t(context, "select_button_to_edit"), reply_markup=InlineKeyboardMarkup(keyboard))
-        return EDIT_BUTTON_SELECT
     else:
         await query.edit_message_text(t(context, "enter_target"))
         return RECEIVE_TARGET
+
 
 async def receive_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.split("\n")
@@ -169,38 +169,11 @@ async def receive_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [
         [InlineKeyboardButton(t(context, "add_button"), callback_data="add_button")],
-        [InlineKeyboardButton(t(context, "edit_button"), callback_data="edit_button")],
         [InlineKeyboardButton(t(context, "send_now"), callback_data="send_now")],
     ]
     await update.message.reply_text(t(context, "button_saved"), reply_markup=InlineKeyboardMarkup(keyboard))
     return CHOOSE_BUTTON_SEND
 
-async def edit_button_select(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    index = int(query.data.split("_")[1])
-    context.user_data["edit_index"] = index
-    await query.edit_message_text(t(context, "enter_button_text_url"))
-    return EDIT_BUTTON_TEXT
-
-async def edit_button_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    index = context.user_data.get("edit_index")
-    text = update.message.text.split("\n")
-    if len(text) != 2 or index is None:
-        await update.message.reply_text(t(context, "invalid_button_format"))
-        return EDIT_BUTTON_TEXT
-
-    btn_text, btn_url = text[0].strip(), text[1].strip()
-    context.user_data["buttons"][index] = (btn_text, btn_url)
-    context.user_data.pop("edit_index", None)
-
-    keyboard = [
-        [InlineKeyboardButton(t(context, "add_button"), callback_data="add_button")],
-        [InlineKeyboardButton(t(context, "edit_button"), callback_data="edit_button")],
-        [InlineKeyboardButton(t(context, "send_now"), callback_data="send_now")],
-    ]
-    await update.message.reply_text(t(context, "button_edited"), reply_markup=InlineKeyboardMarkup(keyboard))
-    return CHOOSE_BUTTON_SEND
 
 async def receive_target(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.text.strip()
@@ -216,19 +189,22 @@ async def receive_target(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await context.bot.send_message(chat_id=chat_id, text=user_data.get("caption", ""), reply_markup=markup)
 
-        keyboard = [
-            [InlineKeyboardButton(t(context, "send_another"), callback_data="restart")],
-            [InlineKeyboardButton(t(context, "exit"), callback_data="cancel")],
-        ]
-        await update.message.reply_text(t(context, "sent_success"), reply_markup=InlineKeyboardMarkup(keyboard))
-
+        await update.message.reply_text(t(context, "sent_success"))
     except Exception as e:
         await update.message.reply_text(t(context, "send_error").format(error=e))
 
+    context.user_data.clear()
     return ConversationHandler.END
 
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(t(context, "cancelled"))
+    context.user_data.clear()
+    return ConversationHandler.END
+
+
 def main():
-    TOKEN = os.getenv("BOT_TOKEN") or "Your token bot"
+    TOKEN = os.getenv("BOT_TOKEN") or "Put your token here"
     logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
     app = ApplicationBuilder().token(TOKEN).build()
 
@@ -238,18 +214,12 @@ def main():
             SELECT_MODE: [
                 CallbackQueryHandler(set_language, pattern="^lang_"),
                 CallbackQueryHandler(mode_selection, pattern="^choose_"),
-                CallbackQueryHandler(restart, pattern="^restart$"),
-                CallbackQueryHandler(cancel, pattern="^cancel$"),
             ],
             RECEIVE_MEDIA: [MessageHandler(filters.PHOTO | filters.VIDEO, receive_media)],
             WAIT_CAPTION: [CallbackQueryHandler(to_caption, pattern="^to_caption$")],
             RECEIVE_CAPTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_caption)],
-            CHOOSE_BUTTON_SEND: [
-                CallbackQueryHandler(handle_after_caption, pattern="^(add_button|send_now|edit_button)$")
-            ],
+            CHOOSE_BUTTON_SEND: [CallbackQueryHandler(handle_after_caption, pattern="^(add_button|send_now)$")],
             RECEIVE_BUTTON: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_button)],
-            EDIT_BUTTON_SELECT: [CallbackQueryHandler(edit_button_select, pattern="^edit_\\d+$")],
-            EDIT_BUTTON_TEXT: [MessageHandler(filters.TEXT & ~filters.COMMAND, edit_button_text)],
             RECEIVE_TARGET: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_target)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
@@ -258,8 +228,9 @@ def main():
     )
 
     app.add_handler(conv_handler)
-    print("✅ Bot started...")
+    print("Bot start..")
     app.run_polling()
+
 
 if __name__ == "__main__":
     main()
